@@ -37,3 +37,9 @@ class MIN(Enum):
     ROB = 1
     GIVE = 1
     BET = 5
+
+class COST(Enum):
+    """强行操作的成本 比例为精心设计"""
+    BUY = 800
+    EAT = 200
+    ROB = 400

@@ -19,7 +19,7 @@ from models.bag_user import BagUser
 from .bread_handle import BreadDataManage, Action
 from .bread_operate import *
 from .bread_event import rob_events, buy_events, eat_events, give_events, bet_events
-from .config import BANNED_GROUPS, THING, LEVEL_NUM
+from .config import BANNED_GROUPS, COST, THING, LEVEL_NUM
 
 __zx_plugin_name__ = "{THING}店"
 __plugin_usage__ = """
@@ -114,7 +114,7 @@ async def _(event: Event, bot: Bot):
         return
 
     if isinstance(event, GroupMessageEvent):
-        cost_coin = 800
+        cost_coin = COST.BUY
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
             await bot.send(message=f"强行买{THING}需要{cost_coin}金币,你的金币不够!", event = event)
@@ -166,7 +166,7 @@ async def _(event: Event, bot: Bot):
         return
 
     if isinstance(event, GroupMessageEvent):
-        cost_coin = 200
+        cost_coin = COST.EAT
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
             await bot.send(message=f"强行吃{THING}需要{cost_coin}金币,你的金币不够!", event = event)
@@ -234,7 +234,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     robbed_name = await get_nickname(bot, robbed_qq, group_id)
 
     if isinstance(event, GroupMessageEvent):
-        cost_coin = 400
+        cost_coin = COST.ROB
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
             await bot.send(message=f"强行抢{THING}需要{cost_coin}金币,你的金币不够!", event = event)
