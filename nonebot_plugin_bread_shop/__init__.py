@@ -5,7 +5,16 @@ import re
 
 from nonebot import on_command
 from nonebot.params import CommandArg
-from nonebot.adapters.onebot.v11 import Bot, Event, Message
+from nonebot.adapters.onebot.v11 import (
+    MessageEvent,
+    GroupMessageEvent,
+    Message,
+    MessageSegment,
+    Bot, 
+    Event, 
+    Message
+)
+from models.bag_user import BagUser
 
 from .bread_handle import BreadDataManage, Action
 from .bread_operate import *
@@ -13,17 +22,54 @@ from .bread_event import rob_events, buy_events, eat_events, give_events, bet_ev
 from .config import BANNED_GROUPS
 
 
-bread_buy = on_command("bread_buy", aliases={"买面包", "buy", "🍞"}, priority=5)
-bread_eat = on_command("bread_eat", aliases={"吃面包", "啃面包", "eat", "🍞🍞"}, priority=5)
-bread_rob = on_command("bread_rob", aliases={"抢面包", "rob", "🍞🍞🍞"}, priority=5)
-bread_give = on_command("bread_give", aliases={"送面包", "give", "送"}, priority=5)
-bread_bet = on_command("bread_bet", aliases={"面包猜拳", "赌面包", "bet"}, priority=5)
+__zx_plugin_name__ = "面包店"
+__plugin_usage__ = """
+usage：
+    面包小游戏，用户可以通过“买|吃|抢|送面包”和“猜拳”操作来获取面包和使用面包。
+    所有操作都有CD，但是可以支付800金使用“强行买面包”指令，支付400金使用“强行抢面包”指令，200金使用“强行吃面包”指令
+    将会记录所有用户的面包数据进行排行
+    所有的操作都可能产生特殊面包事件哦！
+    一起来买面包吧！
+""".strip()
+__plugin_des__ = "(金币回收计划)面包小游戏"
+__plugin_cmd__ = [
+    "领面包",
+    "买面包",
+    "强行买面包",
+    "强行抢面包",
+    "强行吃面包",
+    "吃面包",
+    "抢面包",
+    "送面包",
+    "面包猜拳",
+    "面包记录",
+    "偷看面包",
+    "面包帮助",
+    "面包排行"
+]
+__plugin_type__ = ("群内小游戏", )
+__plugin_version__ = 0.1
+__plugin_author__ = "Mai-icy"
+__plugin_settings__ = {
+    "level": 5,
+    "default_status": True,
+    "limit_superuser": False,
+    "cmd": __plugin_cmd__,
+}
 
-bread_log = on_command("bread_log", aliases={"面包记录", "记录", "logb"}, priority=5)
-bread_check = on_command("bread_check", aliases={"偷看面包", "查看面包", "check"}, priority=5)
-bread_top = on_command("bread_top", aliases={"面包排行", "breadtop", "面包排名"}, priority=5)
+bread_buy = on_command("bread_", aliases={"买面包", "draw", "🍞"}, priority=5, block = True)
+bread_buy2 = on_command("bread_buy", aliases={"强行买面包", "buy2", "🍞"}, priority=5, block = True)
+bread_rob2 = on_command("bread_buy", aliases={"强行抢面包", "rob2", "🍞"}, priority=5, block = True)
 
-bread_help = on_command("bread_help", aliases={"面包帮助", "breadhelp", "helpb"}, priority=5)
+bread_eat = on_command("bread_eat", aliases={"吃面包", "啃面包", "eat", "🍞🍞"}, priority=5, block = True)
+bread_eat2 = on_command("bread_eat", aliases={"强行吃面包", "eat2", "🍞🍞"}, priority=5, block = True)
+bread_rob = on_command("bread_rob", aliases={"抢面包", "rob", "🍞🍞🍞"}, priority=5, block = True)
+bread_give = on_command("bread_give", aliases={"送面包", "give", "送"}, priority=5, block = True)
+bread_bet = on_command("bread_bet", aliases={"面包猜拳", "赌面包", "bet"}, priority=5, block = True)
+bread_log = on_command("bread_log", aliases={"面包记录", "记录", "logb"}, priority=5, block = True)
+bread_check = on_command("bread_check", aliases={"偷看面包", "查看面包", "check"}, priority=5, block = True)
+bread_top = on_command("bread_top", aliases={"面包排行", "breadtop", "面包排名"}, priority=5, block = True)
+bread_help = on_command("bread_help", aliases={"面包帮助", "breadhelp", "helpb"}, priority=5, block = True)
 
 
 EatEvent.add_events(eat_events)
@@ -46,9 +92,9 @@ async def _(event: Event, bot: Bot):
     wait_time = cd_wait_time(group_id, user_qq, Action.BUY)
     if wait_time > 0:
         data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能买面包w，现在一共拥有{data.bread_num}个面包！您的面包排名为:{data.no}"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能领面包w，现在一共拥有{data.bread_num}个面包！您的面包排名为:{data.no}"
     elif wait_time < 0:
-        msg_txt = f"你被禁止购买面包啦！{(abs(wait_time)+ CD.BUY.value) // 60}分钟后才能购买！"
+        msg_txt = f"你被禁止领面包啦！{(abs(wait_time)+ CD.BUY.value) // 60}分钟后才能领！"
     else:
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
@@ -57,6 +103,32 @@ async def _(event: Event, bot: Bot):
     res_msg = msg_at + Message(msg_txt)
     await bot.send(event=event, message=res_msg)
 
+@bread_buy2.handle()
+async def _(event: Event, bot: Bot):
+    user_qq = event.get_user_id()
+    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+
+    group_id = await get_group_id(event.get_session_id())
+    if group_id in BANNED_GROUPS:
+        await bot.send(event=event, message="本群已禁止面包店！请联系bot管理员！")
+        return
+
+    if isinstance(event, GroupMessageEvent):
+        cost_coin = 800
+        have_gold = await BagUser.get_gold(event.user_id, event.group_id)
+        if have_gold < cost_coin:
+            await bot.send(message=f"强行买面包需要{cost_coin}金币,你的金币不够!", event = event)
+            return
+        await BagUser.spend_gold(event.user_id, event.group_id,
+                                    cost_coin)
+        await bot.send(message=f"扣除{cost_coin}金币来买面包", event = event)
+
+        event_ = BuyEvent(group_id)
+        event_.set_user_id(user_qq)
+        msg_txt = event_.execute()
+
+        res_msg = msg_at + Message(msg_txt)
+        await bot.send(event=event, message=res_msg)
 
 @bread_eat.handle()
 async def _(event: Event, bot: Bot):
@@ -82,6 +154,31 @@ async def _(event: Event, bot: Bot):
     res_msg = msg_at + Message(msg_txt)
     await bot.send(event=event, message=res_msg)
 
+@bread_eat2.handle()
+async def _(event: Event, bot: Bot):
+    user_qq = event.get_user_id()
+    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+
+    group_id = await get_group_id(event.get_session_id())
+    if group_id in BANNED_GROUPS:
+        await bot.send(event=event, message="本群已禁止面包店！请联系bot管理员！")
+        return
+
+    if isinstance(event, GroupMessageEvent):
+        cost_coin = 200
+        have_gold = await BagUser.get_gold(event.user_id, event.group_id)
+        if have_gold < cost_coin:
+            await bot.send(message=f"强行吃面包需要{cost_coin}金币,你的金币不够!", event = event)
+            return
+        await BagUser.spend_gold(event.user_id, event.group_id,
+                                    cost_coin)
+        await bot.send(message=f"扣除{cost_coin}金币来吃面包", event = event)
+        event_ = EatEvent(group_id)
+        event_.set_user_id(user_qq)
+        msg_txt = event_.execute()
+
+        res_msg = msg_at + Message(msg_txt)
+        await bot.send(event=event, message=res_msg)
 
 @bread_rob.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg()):
@@ -115,6 +212,40 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     res_msg = msg_at + msg_txt
     await bot.send(event=event, message=res_msg)
 
+@bread_rob2.handle()
+async def _(bot: Bot, event: Event, args: Message = CommandArg()):
+    user_qq = event.get_user_id()
+    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+
+    group_id = await get_group_id(event.get_session_id())
+    if group_id in BANNED_GROUPS:
+        await bot.send(event=event, message="本群已禁止面包店！请联系bot管理员！")
+        return
+
+    robbed_qq = None
+    for arg in args:
+        if arg.type == "at":
+            robbed_qq = arg.data.get("qq", "")
+    if not robbed_qq:
+        return
+    robbed_name = await get_nickname(bot, robbed_qq, group_id)
+
+    if isinstance(event, GroupMessageEvent):
+        cost_coin = 400
+        have_gold = await BagUser.get_gold(event.user_id, event.group_id)
+        if have_gold < cost_coin:
+            await bot.send(message=f"强行抢面包需要{cost_coin}金币,你的金币不够!", event = event)
+            return
+        await BagUser.spend_gold(event.user_id, event.group_id,
+                                    cost_coin)
+        await bot.send(message=f"扣除{cost_coin}金币来抢面包", event = event)
+        event_ = RobEvent(group_id)
+        event_.set_user_id(user_qq)
+        event_.set_robbed_id(robbed_qq, robbed_name)
+        msg_txt = event_.execute()
+
+        res_msg = msg_at + msg_txt
+        await bot.send(event=event, message=res_msg)
 
 @bread_give.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg()):
@@ -276,6 +407,9 @@ async def _(event: Event, bot: Bot):
 面包记录+@    查看操作次数
 查看面包+@    查看面包数据
 面包排行	    本群排行榜top5
+强行买面包   花费额外金币购买面包
+强行吃面包   花费额外金币吃面包
+强行抢面包   花费额外金币抢面包
 更多详情见本项目地址：
 https://github.com/Mai-icy/nonebot-plugin-bread-shop"""
     await bot.send(event=event, message=msg)
