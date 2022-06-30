@@ -59,7 +59,6 @@ __plugin_settings__ = {
 bread_buy = on_command("bread_", aliases={f"买{THING}", "🍞"}, priority=5, block = True)
 bread_buy2 = on_command("bread_buy", aliases={f"强行买{THING}"}, priority=5, block = True)
 bread_rob2 = on_command("bread_buy", aliases={f"强行抢{THING}"}, priority=5, block = True)
-
 bread_eat = on_command("bread_eat", aliases={f"吃{THING}", f"啃{THING}"}, priority=5, block = True)
 bread_eat2 = on_command("bread_eat", aliases={f"强行吃{THING}"}, priority=5, block = True)
 bread_rob = on_command("bread_rob", aliases={f"抢{THING}"}, priority=5, block = True)
@@ -122,6 +121,7 @@ async def _(event: Event, bot: Bot):
                                     cost_coin)
         await bot.send(message=f"扣除{cost_coin}金币来买{THING}", event = event)
 
+        event.bread_db.cd_refresh(event.user_id, Action.BUY)
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
@@ -171,7 +171,9 @@ async def _(event: Event, bot: Bot):
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来吃{THING}", event = event)
+        await bot.send(message=f"扣除{cost_coin}金币来吃面包", event = event)
+        event.bread_db.cd_refresh(event.user_id, Action.EAT)
+
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
@@ -237,7 +239,9 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来抢{THING}", event = event)
+
+        await bot.send(message=f"扣除{cost_coin}金币来抢面包", event = event)
+        event.bread_db.cd_refresh(event.user_id, Action.ROB)
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_robbed_id(robbed_qq, robbed_name)
