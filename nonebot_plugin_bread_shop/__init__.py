@@ -123,7 +123,7 @@ async def _(event: Event, bot: Bot):
                                     cost_coin)
         await bot.send(message=f"扣除{cost_coin}金币来买{THING}", event = event)
 
-        event.bread_db.cd_refresh(event.user_id, Action.BUY)
+        BreadDataManage(group_id).cd_refresh(event.user_id, Action.BUY)
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
@@ -159,7 +159,7 @@ async def _(event: Event, bot: Bot):
 async def _(event: Event, bot: Bot):
     user_qq = event.get_user_id()
     msg_at = Message(f"[CQ:at,qq={user_qq}]")
-
+    
     group_id = await get_group_id(event.get_session_id())
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message="本群已禁止{THING}店！请联系bot管理员！")
@@ -174,7 +174,7 @@ async def _(event: Event, bot: Bot):
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
         await bot.send(message=f"扣除{cost_coin}金币来吃{THING}", event = event)
-        event.bread_db.cd_refresh(event.user_id, Action.EAT)
+        BreadDataManage(group_id).cd_refresh(event.user_id, Action.EAT)
 
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
@@ -243,7 +243,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
                                     cost_coin)
 
         await bot.send(message=f"扣除{cost_coin}金币来抢{THING}", event = event)
-        event.bread_db.cd_refresh(event.user_id, Action.ROB)
+        BreadDataManage(group_id).cd_refresh(event.user_id, Action.ROB)
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_robbed_id(robbed_qq, robbed_name)
