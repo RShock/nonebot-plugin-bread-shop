@@ -1,14 +1,14 @@
 # nonebot-plugin-bread-shop
 
-![OSCS Status](https://www.oscs1024.com/platform/badge/Mai-icy/nonebot-plugin-bread-shop.svg?size=small)
-[![VERSION](https://img.shields.io/pypi/v/nonebot-plugin-bread-shop)](https://pypi.org/project/nonebot-plugin-bread-shop/)
-![GitHub license](https://img.shields.io/badge/python-3.7+-blue.svg)
-[![GitHub license](https://img.shields.io/github/license/Mai-icy/nonebot-plugin-bread-shop)](https://github.com/Mai-icy/nonebot-plugin-bread-shop/blob/main/LICENSE)
-![Lines of code](https://img.shields.io/tokei/lines/github/Mai-icy/nonebot-plugin-bread-shop)
+# 面包店插件的真寻魔改版
 
+## 魔改了什么？
 
----
+因为有不少群出现了金币爆炸的问题，在原版的面包店基础上，加入了支付800金的“强行买面包”，400金的“强行抢面包”，200金的“强行吃面包”功能，意图进行金币回收
 
+同时也保证基础玩法不会改变，保证无氪玩家体验，促进玩家氪金
+
+视群内金币爆炸程度不同，可自由调整价格，可按自己兴趣在`__init.py__`里进行修改
 
 ## ⚠️警告须知！
 
