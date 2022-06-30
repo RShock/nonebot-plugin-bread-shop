@@ -59,16 +59,16 @@ __plugin_settings__ = {
 }
 
 bread_buy = on_command("bread_", aliases={f"买{THING}", "🍞"}, priority=5, block = True)
-bread_buy2 = on_command("bread_buy", aliases={f"强行买{THING}"}, priority=5, block = True)
-bread_rob2 = on_command("bread_buy", aliases={f"强行抢{THING}"}, priority=5, block = True)
+bread_buy2 = on_command("bread_buy", aliases={f"强行买{THING}", f"强制买{THING}", f"强买{THING}"}, priority=5, block = True)
+bread_rob2 = on_command("bread_buy", aliases={f"强行抢{THING}", f"强制抢{THING}", f"强抢{THING}"}, priority=5, block = True)
 bread_eat = on_command("bread_eat", aliases={f"吃{THING}", f"啃{THING}"}, priority=5, block = True)
-bread_eat2 = on_command("bread_eat", aliases={f"强行吃{THING}"}, priority=5, block = True)
+bread_eat2 = on_command("bread_eat", aliases={f"强行吃{THING}", f"强制吃{THING}", f"强吃{THING}"}, priority=5, block = True)
 bread_rob = on_command("bread_rob", aliases={f"抢{THING}"}, priority=5, block = True)
 bread_give = on_command("bread_give", aliases={f"送{THING}"}, priority=5, block = True)
 bread_bet = on_command("bread_bet", aliases={f"赌{THING}"}, priority=5, block = True)
 bread_log = on_command("bread_log", aliases={f"{THING}记录"}, priority=5, block = True)
 bread_check = on_command("bread_check", aliases={f"偷看{THING}", f"查看{THING}"}, priority=5, block = True)
-bread_top = on_command("bread_top", aliases={f"{THING}排行"}, priority=5, block = True)
+bread_top = on_command("bread_top", aliases={f"{THING}排行", f"{THING}排名",f"谁的{THING}"}, priority=5, block = True)
 bread_help = on_command("bread_help", aliases={f"{THING}帮助"}, priority=5, block = True)
 
 EatEvent.add_events(eat_events)
@@ -123,7 +123,7 @@ async def _(event: Event, bot: Bot):
                                     cost_coin)
         await bot.send(message=f"扣除{cost_coin}金币来买{THING}", event = event)
 
-        BreadDataManage(group_id).cd_refresh(event.user_id, Action.BUY)
+        BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.BUY)
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
@@ -159,7 +159,7 @@ async def _(event: Event, bot: Bot):
 async def _(event: Event, bot: Bot):
     user_qq = event.get_user_id()
     msg_at = Message(f"[CQ:at,qq={user_qq}]")
-    
+
     group_id = await get_group_id(event.get_session_id())
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message="本群已禁止{THING}店！请联系bot管理员！")
@@ -174,7 +174,7 @@ async def _(event: Event, bot: Bot):
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
         await bot.send(message=f"扣除{cost_coin}金币来吃{THING}", event = event)
-        BreadDataManage(group_id).cd_refresh(event.user_id, Action.EAT)
+        BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.EAT)
 
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
@@ -243,7 +243,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
                                     cost_coin)
 
         await bot.send(message=f"扣除{cost_coin}金币来抢{THING}", event = event)
-        BreadDataManage(group_id).cd_refresh(event.user_id, Action.ROB)
+        BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.ROB)
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_robbed_id(robbed_qq, robbed_name)
