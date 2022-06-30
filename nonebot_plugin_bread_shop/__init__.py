@@ -25,7 +25,9 @@ __zx_plugin_name__ = "{THING}店"
 __plugin_usage__ = """
 usage：
     {THING}小游戏，用户可以通过“买|吃|抢|送{THING}”和“猜拳”操作来获取{THING}和使用{THING}。
-    所有操作都有CD，但是可以支付800金使用“强行买{THING}”指令，支付400金使用“强行抢{THING}”指令，200金使用“强行吃{THING}”指令
+    所有操作都有CD
+    但是可以支付800金使用“强行买{THING}”指令，支付400金使用“强行抢{THING}”指令，200金使用“强行吃{THING}”指令
+    输入{THING}帮助以获取更多信息
     将会记录所有用户的{THING}数据进行排行
     所有的操作都可能产生特殊{THING}事件哦！
     一起来买{THING}吧！
@@ -171,7 +173,7 @@ async def _(event: Event, bot: Bot):
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来吃面包", event = event)
+        await bot.send(message=f"扣除{cost_coin}金币来吃{THING}", event = event)
         event.bread_db.cd_refresh(event.user_id, Action.EAT)
 
         event_ = EatEvent(group_id)
@@ -240,7 +242,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
 
-        await bot.send(message=f"扣除{cost_coin}金币来抢面包", event = event)
+        await bot.send(message=f"扣除{cost_coin}金币来抢{THING}", event = event)
         event.bread_db.cd_refresh(event.user_id, Action.ROB)
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)

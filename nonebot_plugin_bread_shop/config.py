@@ -14,11 +14,11 @@ LEVEL_NUM = 10
 
 class CD(Enum):
     """操作冷却（单位：秒）"""
-    BUY = 4200
-    EAT = 4800
-    ROB = 7000
-    GIVE = 3000
-    BET = 5400
+    BUY = 3600
+    EAT = 3600
+    ROB = 7200
+    GIVE = 0
+    BET = 0
 
 
 class MAX(Enum):
