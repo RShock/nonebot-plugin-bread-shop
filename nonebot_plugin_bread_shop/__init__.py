@@ -114,7 +114,7 @@ async def _(event: Event, bot: Bot):
         return
 
     if isinstance(event, GroupMessageEvent):
-        cost_coin = COST.BUY
+        cost_coin = COST.BUY.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
             await bot.send(message=f"强行买{THING}需要{cost_coin}金币,你的金币不够!", event = event)
@@ -166,7 +166,7 @@ async def _(event: Event, bot: Bot):
         return
 
     if isinstance(event, GroupMessageEvent):
-        cost_coin = COST.EAT
+        cost_coin = COST.EAT.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
             await bot.send(message=f"强行吃{THING}需要{cost_coin}金币,你的金币不够!", event = event)
@@ -234,7 +234,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     robbed_name = await get_nickname(bot, robbed_qq, group_id)
 
     if isinstance(event, GroupMessageEvent):
-        cost_coin = COST.ROB
+        cost_coin = COST.ROB.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
             await bot.send(message=f"强行抢{THING}需要{cost_coin}金币,你的金币不够!", event = event)
@@ -307,7 +307,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         ges = args.extract_plain_text()
 
         if ges not in ["石头", "剪刀", "布"]:
-            await bot.send(event=event, message=f"没有{ges}这种东西啦！请输入“石头”或“剪刀”或“布”！例如 ’/bet 石头‘ ")
+            await bot.send(event=event, message=f"没有{ges}这种东西啦！请输入“石头”或“剪刀”或“布”！例如 ’赌面包 石头‘ ")
             return
         if ges == "石头":
             ges_ = BetEvent.G(0)
@@ -374,7 +374,7 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
             await bot.send(event=event, message=msg)
             return
         else:
-            msg = f'没有{add_arg}这个操作啦！只有"买"，"吃"，"抢"，"赠送"，"猜拳" 例如：/logb 买'
+            msg = f'没有{add_arg}这个操作啦！只有"买"，"吃"，"抢"，"赠送"，"猜拳" 例如：{THING}记录 买'
             await bot.send(event=event, message=msg_at + msg)
             return
 

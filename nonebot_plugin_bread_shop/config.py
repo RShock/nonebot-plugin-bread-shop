@@ -18,7 +18,7 @@ class CD(Enum):
     EAT = 3600
     ROB = 7200
     GIVE = 0
-    BET = 0
+    BET = 3600
 
 
 class MAX(Enum):
@@ -32,10 +32,10 @@ class MAX(Enum):
 
 class MIN(Enum):
     """操作随机值下限"""
-    BUY = 1
-    EAT = 1
+    BUY = 3
+    EAT = 3
     ROB = 1
-    GIVE = 1
+    GIVE = 3
     BET = 5
 
 class COST(Enum):
