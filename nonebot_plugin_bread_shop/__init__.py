@@ -58,11 +58,11 @@ __plugin_settings__ = {
     "cmd": __plugin_cmd__,
 }
 
-bread_buy = on_command("bread_", aliases={f"买{THING}", "🍞"}, priority=5, block = True)
-bread_buy2 = on_command("bread_buy", aliases={f"强行买{THING}", f"强制买{THING}", f"强买{THING}"}, priority=5, block = True)
-bread_rob2 = on_command("bread_buy", aliases={f"强行抢{THING}", f"强制抢{THING}", f"强抢{THING}"}, priority=5, block = True)
+bread_buy = on_command("bread_buy", aliases={f"买{THING}", "🍞"}, priority=5, block = True)
+bread_buy2 = on_command("bread_force_buy", aliases={f"强行买{THING}", f"强制买{THING}", f"强买{THING}"}, priority=5, block = True)
+bread_rob2 = on_command("bread_force_rob", aliases={f"强行抢{THING}", f"强制抢{THING}", f"强抢{THING}"}, priority=5, block = True)
 bread_eat = on_command("bread_eat", aliases={f"吃{THING}", f"啃{THING}"}, priority=5, block = True)
-bread_eat2 = on_command("bread_eat", aliases={f"强行吃{THING}", f"强制吃{THING}", f"强吃{THING}"}, priority=5, block = True)
+bread_eat2 = on_command("bread_force_eat", aliases={f"强行吃{THING}", f"强制吃{THING}", f"强吃{THING}"}, priority=5, block = True)
 bread_rob = on_command("bread_rob", aliases={f"抢{THING}"}, priority=5, block = True)
 bread_give = on_command("bread_give", aliases={f"送{THING}"}, priority=5, block = True)
 bread_bet = on_command("bread_bet", aliases={f"赌{THING}"}, priority=5, block = True)
