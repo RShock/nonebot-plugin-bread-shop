@@ -21,8 +21,8 @@ from .bread_operate import *
 from .bread_event import rob_events, buy_events, eat_events, give_events, bet_events
 from .config import BANNED_GROUPS, COST, THING, LEVEL_NUM
 
-__zx_plugin_name__ = "{THING}店"
-__plugin_usage__ = """
+__zx_plugin_name__ = f"{THING}店"
+__plugin_usage__ = f"""
 usage：
     {THING}小游戏，用户可以通过“买|吃|抢|送{THING}”和“猜拳”操作来获取{THING}和使用{THING}。
     所有操作都有CD
@@ -67,7 +67,7 @@ bread_rob = on_command("bread_rob", aliases={f"抢{THING}"}, priority=5, block =
 bread_give = on_command("bread_give", aliases={f"送{THING}"}, priority=5, block = True)
 bread_bet = on_command("bread_bet", aliases={f"赌{THING}"}, priority=5, block = True)
 bread_log = on_command("bread_log", aliases={f"{THING}记录"}, priority=5, block = True)
-bread_check = on_command("bread_check", aliases={f"偷看{THING}", f"查看{THING}"}, priority=5, block = True)
+bread_check = on_command("bread_check", aliases={f"偷看{THING}", f"查看{THING}", f"我的{THING}"}, priority=5, block = True)
 bread_top = on_command("bread_top", aliases={f"{THING}排行", f"{THING}排名",f"谁的{THING}"}, priority=5, block = True)
 bread_help = on_command("bread_help", aliases={f"{THING}帮助"}, priority=5, block = True)
 
