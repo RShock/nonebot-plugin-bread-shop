@@ -81,9 +81,9 @@ BetEvent.add_events(bet_events)
 @bread_buy.handle()
 async def _(event: Event, bot: Bot):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
-
     group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
+
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
         return
@@ -100,13 +100,14 @@ async def _(event: Event, bot: Bot):
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
 
-    res_msg = msg_at + Message(msg_txt)
+    res_msg = msg_name + Message(msg_txt)
     await bot.send(event=event, message=res_msg)
 
 @bread_buy2.handle()
 async def _(event: Event, bot: Bot):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+    group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
 
     group_id = await get_group_id(event.get_session_id())
     if group_id in BANNED_GROUPS:
@@ -128,15 +129,15 @@ async def _(event: Event, bot: Bot):
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
 
-        res_msg = msg_at + Message(msg_txt)
+        res_msg = msg_name + Message(msg_txt)
         await bot.send(event=event, message=res_msg)
 
 @bread_eat.handle()
 async def _(event: Event, bot: Bot):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
-
     group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
+
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
         return
@@ -152,15 +153,15 @@ async def _(event: Event, bot: Bot):
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
 
-    res_msg = msg_at + Message(msg_txt)
+    res_msg = msg_name + Message(msg_txt)
     await bot.send(event=event, message=res_msg)
 
 @bread_eat2.handle()
 async def _(event: Event, bot: Bot):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
-
     group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
+
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message="本群已禁止{THING}店！请联系bot管理员！")
         return
@@ -180,13 +181,14 @@ async def _(event: Event, bot: Bot):
         event_.set_user_id(user_qq)
         msg_txt = event_.execute()
 
-        res_msg = msg_at + Message(msg_txt)
+        res_msg = msg_name + Message(msg_txt)
         await bot.send(event=event, message=res_msg)
 
 @bread_rob.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+    group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
 
     group_id = await get_group_id(event.get_session_id())
     if group_id in BANNED_GROUPS:
@@ -212,13 +214,14 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         event_.set_robbed_id(robbed_qq, robbed_name)
         msg_txt = event_.execute()
 
-    res_msg = msg_at + msg_txt
+    res_msg = msg_name + msg_txt
     await bot.send(event=event, message=res_msg)
 
 @bread_rob2.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+    group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
 
     group_id = await get_group_id(event.get_session_id())
     if group_id in BANNED_GROUPS:
@@ -249,13 +252,14 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         event_.set_robbed_id(robbed_qq, robbed_name)
         msg_txt = event_.execute()
 
-        res_msg = msg_at + msg_txt
+        res_msg = msg_name + msg_txt
         await bot.send(event=event, message=res_msg)
 
 @bread_give.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
+    group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
 
     group_id = await get_group_id(event.get_session_id())
     if group_id in BANNED_GROUPS:
@@ -281,15 +285,15 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         event_.set_given_id(robbed_qq, robbed_name)
         msg_txt = event_.execute()
 
-    res_msg = msg_at + msg_txt
+    res_msg = msg_name + msg_txt
     await bot.send(event=event, message=res_msg)
 
 
 @bread_bet.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
     group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
         return
@@ -297,11 +301,11 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     wait_time = cd_wait_time(group_id, user_qq, Action.BET)
     if wait_time > 0:
         msg_txt = f"您还得等待{wait_time // 60}分钟才能猜拳w"
-        await bot.send(event=event, message=msg_at + msg_txt)
+        await bot.send(event=event, message=msg_name + msg_txt)
         return
     elif wait_time < 0:
         msg_txt = f"你被禁止猜拳啦！{(abs(wait_time) + CD.BET.value) // 60}分钟后才能猜拳哦！"
-        await bot.send(event=event, message=msg_at + msg_txt)
+        await bot.send(event=event, message=msg_name + msg_txt)
         return
     else:
         ges = args.extract_plain_text()
@@ -321,16 +325,16 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         event_.set_user_gestures(ges_)
         msg_txt = event_.execute()
 
-        res_msg = msg_at + msg_txt
+        res_msg = msg_name + msg_txt
         await bread_bet.finish(res_msg)
 
 
 @bread_check.handle()
 async def _(event: Event, bot: Bot, args: Message = CommandArg()):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
-
     group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
+
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
         return
@@ -347,15 +351,15 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
         checked_data = BreadDataManage(group_id).get_bread_data(checked_qq)
         msg = f"{checked_name} 现在拥有{checked_data.bread_num}个{THING}，等级为Lv.{checked_data.level}，排名为{checked_data.no}！"
 
-    await bot.send(event=event, message=msg_at + msg)
+    await bot.send(event=event, message=msg_name + msg)
 
 
 @bread_log.handle()
 async def _(event: Event, bot: Bot, args: Message = CommandArg()):
     user_qq = event.get_user_id()
-    msg_at = Message(f"[CQ:at,qq={user_qq}]")
-
     group_id = await get_group_id(event.get_session_id())
+    msg_name = await get_nickname(bot, user_qq, group_id)
+
     if group_id in BANNED_GROUPS:
         await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
         return
@@ -375,7 +379,7 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
             return
         else:
             msg = f'没有{add_arg}这个操作啦！只有"买"，"吃"，"抢"，"赠送"，"猜拳" 例如：{THING}记录 买'
-            await bot.send(event=event, message=msg_at + msg)
+            await bot.send(event=event, message=msg_name + msg)
             return
 
     checked_qq = user_qq
@@ -391,7 +395,7 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
         checked_log = BreadDataManage(group_id).get_log_data(checked_qq)
         msg = f"{checked_name}共购买{checked_log.buy_times}次，吃{checked_log.eat_times}次，抢{checked_log.rob_times}次，" \
               f"赠送{checked_log.give_times}次，猜拳{checked_log.eat_times}次！"
-    await bot.send(event=event, message=msg_at + msg)
+    await bot.send(event=event, message=msg_name + msg)
 
 
 @bread_help.handle()
