@@ -2,51 +2,46 @@
 # -*- coding:utf-8 -*-
 
 import re
+from itertools import chain
 
+from nonebot import get_driver
 from nonebot import on_command
-from nonebot.params import CommandArg
-from nonebot.adapters.onebot.v11 import (
-    MessageEvent,
-    GroupMessageEvent,
-    Message,
-    MessageSegment,
-    Bot, 
-    Event, 
-    Message
-)
+from nonebot.params import CommandArg, RawCommand
+from nonebot.adapters.onebot.v11 import Bot, Event, Message, GroupMessageEvent
 from models.bag_user import BagUser
 
 from .bread_handle import BreadDataManage, Action
 from .bread_operate import *
 from .bread_event import rob_events, buy_events, eat_events, give_events, bet_events
-from .config import BANNED_GROUPS, COST, THING, LEVEL_NUM
+from .config import LEVEL, random_config, bread_config, COST
 
-__zx_plugin_name__ = f"{THING}店"
-__plugin_usage__ = f"""
+__zx_plugin_name__ = "面包店"
+__plugin_usage__ = """
 usage：
-    {THING}小游戏，用户可以通过“买|吃|抢|送{THING}”和“猜拳”操作来获取{THING}和使用{THING}。
+    面包小游戏，用户可以通过“买|吃|抢|送面包”和“猜拳”操作来获取面包和使用面包。
+    注意，也许在你的群，面包不叫面包，而叫别的什么。这时候请将指令的面包替换为别的东西
     所有操作都有CD
-    但是可以支付800金使用“强行买{THING}”指令，支付400金使用“强行抢{THING}”指令，200金使用“强行吃{THING}”指令
-    输入{THING}帮助以获取更多信息
-    将会记录所有用户的{THING}数据进行排行
-    所有的操作都可能产生特殊{THING}事件哦！
-    一起来买{THING}吧！
+    但是可以支付800金使用“强行买面包”指令，支付400金使用“强行抢面包”指令，200金使用“强行吃面包”指令
+    输入面包帮助以获取更多信息
+    将会记录所有用户的面包数据进行排行
+    所有的操作都可能产生特殊面包事件哦！
+    一起来买面包吧！
 """.strip()
-__plugin_des__ = "(金币回收计划){THING}小游戏"
+__plugin_des__ = "(金币回收计划)面包小游戏"
 __plugin_cmd__ = [
-    f"领{THING}",
-    f"买{THING}",
-    f"强行买{THING}",
-    f"强行抢{THING}",
-    f"强行吃{THING}",
-    f"吃{THING}",
-    f"抢{THING}",
-    f"送{THING}",
-    f"{THING}猜拳",
-    f"{THING}记录",
-    f"偷看{THING}",
-    f"{THING}帮助",
-    f"{THING}排行"
+    "领面包",
+    "买面包",
+    "强行买面包",
+    "强行抢面包",
+    "强行吃面包",
+    "吃面包",
+    "抢面包",
+    "送面包",
+    "面包猜拳",
+    "面包记录",
+    "偷看面包",
+    "面包帮助",
+    "面包排行"
 ]
 __plugin_type__ = ("群内小游戏", )
 __plugin_version__ = 0.1
@@ -58,18 +53,77 @@ __plugin_settings__ = {
     "cmd": __plugin_cmd__,
 }
 
-bread_buy = on_command("bread_buy", aliases={f"买{THING}", "🍞"}, priority=5, block = True)
-bread_buy2 = on_command("bread_force_buy", aliases={f"强行买{THING}", f"强制买{THING}", f"强买{THING}"}, priority=5, block = True)
-bread_rob2 = on_command("bread_force_rob", aliases={f"强行抢{THING}", f"强制抢{THING}", f"强抢{THING}"}, priority=5, block = True)
-bread_eat = on_command("bread_eat", aliases={f"吃{THING}", f"啃{THING}"}, priority=5, block = True)
-bread_eat2 = on_command("bread_force_eat", aliases={f"强行吃{THING}", f"强制吃{THING}", f"强吃{THING}"}, priority=5, block = True)
-bread_rob = on_command("bread_rob", aliases={f"抢{THING}"}, priority=5, block = True)
-bread_give = on_command("bread_give", aliases={f"送{THING}"}, priority=5, block = True)
-bread_bet = on_command("bread_bet", aliases={f"赌{THING}"}, priority=5, block = True)
-bread_log = on_command("bread_log", aliases={f"{THING}记录"}, priority=5, block = True)
-bread_check = on_command("bread_check", aliases={f"偷看{THING}", f"查看{THING}", f"我的{THING}"}, priority=5, block = True)
-bread_top = on_command("bread_top", aliases={f"{THING}排行", f"{THING}排名",f"谁的{THING}"}, priority=5, block = True)
-bread_help = on_command("bread_help", aliases={f"{THING}帮助"}, priority=5, block = True)
+driver = get_driver()
+
+cmd_buy_ori = {"buy", "🍞"}
+cmd_force_buy_ori = {"force_buy"}
+cmd_eat_ori = {"eat", "🍞🍞"}
+cmd_force_eat_ori = {"eat", "🍞🍞"}
+cmd_rob_ori = {"rob", "🍞🍞🍞"}
+cmd_force_rob_ori = {"rob", "🍞🍞🍞"}
+cmd_give_ori = {"give", "送"}
+cmd_bet_ori = {"bet"}
+
+cmd_log_ori = {"logb"}
+cmd_check_ori = {"check"}
+
+cmd_top_ori = {"breadtop"}
+cmd_help_ori = {"breadhelp", "helpb"}
+
+cmd_buy = cmd_buy_ori.copy()
+cmd_force_buy = cmd_force_buy_ori.copy()
+cmd_eat = cmd_eat_ori.copy()
+cmd_force_eat = cmd_force_eat_ori.copy()
+cmd_rob = cmd_rob_ori.copy()
+cmd_force_rob = cmd_force_rob_ori.copy()
+cmd_give = cmd_give_ori.copy()
+cmd_bet = cmd_bet_ori.copy()
+
+cmd_log = cmd_log_ori.copy()
+cmd_check = cmd_check_ori.copy()
+
+cmd_top = cmd_top_ori.copy()
+cmd_help = cmd_help_ori.copy()
+
+for things in chain(bread_config.special_thing_group.values(), (bread_config.bread_thing,)):
+    cmd_buy.add(f"买{things}")
+    cmd_eat.add(f"吃{things}")
+    cmd_eat.add(f"啃{things}")
+    cmd_rob.add(f"抢{things}")
+    cmd_give.add(f"送{things}")
+    cmd_bet.add(f"{things}猜拳")
+    cmd_bet.add(f"赌{things}")
+    cmd_force_buy.add(f"强行买{things}")
+    cmd_force_buy.add(f"强制买{things}")
+    cmd_force_buy.add(f"强买{things}")
+    cmd_force_eat.add(f"强行吃{things}")
+    cmd_force_eat.add(f"强制吃{things}")
+    cmd_force_eat.add(f"强吃{things}")
+    cmd_force_rob.add(f"强行抢{things}")
+    cmd_force_rob.add(f"强制抢{things}")
+    cmd_force_rob.add(f"强抢{things}")
+
+    cmd_log.add(f"{things}记录")
+    cmd_check.add(f"偷看{things}")
+    cmd_check.add(f"查看{things}")
+
+    cmd_top.add(f"{things}排行")
+    cmd_top.add(f"{things}排名")
+    cmd_help.add(f"{things}帮助")
+
+bread_buy = on_command("bread_buy", aliases=cmd_buy, priority=5, block = True)
+force_buy = on_command("force_buy", aliases=cmd_force_buy, priority=5, block = True)
+bread_eat = on_command("bread_eat", aliases=cmd_eat, priority=5, block = True)
+force_eat = on_command("force_eat", aliases=cmd_force_eat, priority=5, block = True)
+bread_rob = on_command("bread_rob", aliases=cmd_rob, priority=5, block = True)
+force_rob = on_command("force_rob", aliases=cmd_force_rob, priority=5, block = True)
+bread_give = on_command("bread_give", aliases=cmd_give, priority=5, block = True)
+bread_bet = on_command("bread_bet", aliases=cmd_bet, priority=5, block = True)
+
+bread_log = on_command("bread_log", aliases=cmd_log, priority=5, block = True)
+bread_check = on_command("bread_check", aliases=cmd_check, priority=5, block = True)
+bread_top = on_command("bread_top", aliases=cmd_top, priority=5, block = True)
+bread_help = on_command("bread_help", aliases=cmd_help, priority=5, block = True)
 
 EatEvent.add_events(eat_events)
 BuyEvent.add_events(buy_events)
@@ -77,161 +131,175 @@ RobEvent.add_events(rob_events)
 GiveEvent.add_events(give_events)
 BetEvent.add_events(bet_events)
 
+random_config()
+
 
 @bread_buy.handle()
-async def _(event: Event, bot: Bot):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_buy_ori)
+        buy_num = get_num_arg(args.extract_plain_text(), BuyEvent, group_id)
+    except ArgsError as e:
+        await bot.send(event=event, message=str(e))
+        return
+    except CommandError:
         return
 
     wait_time = cd_wait_time(group_id, user_qq, Action.BUY)
     if wait_time > 0:
         data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能买{THING}w，现在一共拥有{data.bread_num}个{THING}！您的{THING}排名为:{data.no}"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能买{things}w，现在一共拥有{data.bread_num}个{things}！您的{things}排名为:{data.no}"
     elif wait_time < 0:
-        msg_txt = f"你被禁止购买{THING}啦！{(abs(wait_time)+ CD.BUY.value) // 60}分钟后才能购买！"
-
+        msg_txt = f"你被禁止购买{things}啦！{(abs(wait_time) + CD.BUY.value) // 60}分钟后才能购买！"
     else:
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
-        msg_txt = event_.execute()
+        msg_txt = event_.execute(buy_num)
 
-    res_msg = msg_name + Message(msg_txt)
+    res_msg = msg_at + Message(msg_txt)
     await bot.send(event=event, message=res_msg)
 
-@bread_buy2.handle()
-async def _(event: Event, bot: Bot):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    group_id = await get_group_id(event.get_session_id())
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message="本群已禁止{THING}店！请联系bot管理员！")
+@force_buy.handle()
+async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_buy_ori)
+        buy_num = get_num_arg(args.extract_plain_text(), BuyEvent, group_id)
+    except ArgsError as e:
+        await bot.send(event=event, message=str(e))
+        return
+    except CommandError:
         return
 
     if isinstance(event, GroupMessageEvent):
         cost_coin = COST.BUY.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
-            await bot.send(message=f"强行买{THING}需要{cost_coin}金币,你的金币不够!", event = event)
+            await bot.send(message=f"强行买{things}需要{cost_coin}金币,你的金币不够!", event = event)
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来买{THING}", event = event)
+        await bot.send(message=f"扣除{cost_coin}金币来买{things}", event = event)
 
         BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.BUY)
+    
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
-        msg_txt = event_.execute()
+        msg_txt = event_.execute(buy_num)
 
-        res_msg = msg_name + Message(msg_txt)
-        await bot.send(event=event, message=res_msg)
+    res_msg = msg_at + Message(msg_txt)
+    await bot.send(event=event, message=res_msg)
 
 @bread_eat.handle()
-async def _(event: Event, bot: Bot):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_eat_ori)
+        eat_num = get_num_arg(args.extract_plain_text(), EatEvent, group_id)
+    except ArgsError as e:
+        await bot.send(event=event, message=str(e))
+        return
+    except CommandError:
         return
 
     wait_time = cd_wait_time(group_id, user_qq, Action.EAT)
     if wait_time > 0:
         data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能吃{THING}w，现在你的等级是Lv.{data.bread_eaten // LEVEL_NUM}！您的{THING}排名为:{data.no}"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能吃{things}w，现在你的等级是Lv.{data.bread_eaten // LEVEL}！您的{things}排名为:{data.no}"
     elif wait_time < 0:
-        msg_txt = f"你被禁止吃{THING}啦！{(abs(wait_time)+ CD.EAT.value) // 60}分钟后才能吃哦！"
+        msg_txt = f"你被禁止吃{things}啦！{(abs(wait_time) + CD.EAT.value) // 60}分钟后才能吃哦！"
     else:
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
-        msg_txt = event_.execute()
+        msg_txt = event_.execute(eat_num)
 
-    res_msg = msg_name + Message(msg_txt)
+    res_msg = msg_at + Message(msg_txt)
     await bot.send(event=event, message=res_msg)
 
-@bread_eat2.handle()
-async def _(event: Event, bot: Bot):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message="本群已禁止{THING}店！请联系bot管理员！")
+@force_eat.handle()
+async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_eat_ori)
+        eat_num = get_num_arg(args.extract_plain_text(), EatEvent, group_id)
+    except ArgsError as e:
+        await bot.send(event=event, message=str(e))
+        return
+    except CommandError:
         return
 
     if isinstance(event, GroupMessageEvent):
         cost_coin = COST.EAT.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
-            await bot.send(message=f"强行吃{THING}需要{cost_coin}金币,你的金币不够!", event = event)
+            await bot.send(message=f"强行吃{things}需要{cost_coin}金币,你的金币不够!", event = event)
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来吃{THING}", event = event)
+        await bot.send(message=f"扣除{cost_coin}金币来吃{things}", event = event)
         BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.EAT)
-
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
-        msg_txt = event_.execute()
+        msg_txt = event_.execute(eat_num)
 
-        res_msg = msg_name + Message(msg_txt)
-        await bot.send(event=event, message=res_msg)
+    res_msg = msg_at + Message(msg_txt)
+    await bot.send(event=event, message=res_msg)
 
 @bread_rob.handle()
-async def _(bot: Bot, event: Event, args: Message = CommandArg()):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    group_id = await get_group_id(event.get_session_id())
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_rob_ori)
+    except CommandError:
         return
 
     robbed_qq = None
+    rob_num = None
     for arg in args:
         if arg.type == "at":
             robbed_qq = arg.data.get("qq", "")
+        if arg.type == "text":
+            text = arg.data.get("text")
+            try:
+                rob_num = get_num_arg(text, RobEvent, group_id)
+            except ArgsError as e:
+                await bot.send(event=event, message=str(e))
+                return
+
     if not robbed_qq:
         return
     robbed_name = await get_nickname(bot, robbed_qq, group_id)
 
     wait_time = cd_wait_time(group_id, user_qq, Action.ROB)
     if wait_time > 0:
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能抢{THING}w"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能抢{things}w"
     elif wait_time < 0:
-        msg_txt = f"你被禁止抢{THING}啦！{(abs(wait_time) + CD.ROB.value) // 60}分钟后才能抢哦！"
+        msg_txt = f"你被禁止抢{things}啦！{(abs(wait_time) + CD.ROB.value) // 60}分钟后才能抢哦！"
     else:
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
-        event_.set_robbed_id(robbed_qq, robbed_name)
-        msg_txt = event_.execute()
+        event_.set_other_id(robbed_qq, robbed_name)
+        msg_txt = event_.execute(rob_num)
 
-    res_msg = msg_name + msg_txt
+    res_msg = msg_at + msg_txt
     await bot.send(event=event, message=res_msg)
 
-@bread_rob2.handle()
-async def _(bot: Bot, event: Event, args: Message = CommandArg()):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    group_id = await get_group_id(event.get_session_id())
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message="本群已禁止{THING}店！请联系bot管理员！")
+@force_rob.handle()
+async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_rob_ori)
+    except CommandError:
         return
 
     robbed_qq = None
+    rob_num = None
     for arg in args:
         if arg.type == "at":
             robbed_qq = arg.data.get("qq", "")
+        if arg.type == "text":
+            text = arg.data.get("text")
+            try:
+                rob_num = get_num_arg(text, RobEvent, group_id)
+            except ArgsError as e:
+                await bot.send(event=event, message=str(e))
+                return
+
     if not robbed_qq:
         return
     robbed_name = await get_nickname(bot, robbed_qq, group_id)
@@ -240,78 +308,91 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         cost_coin = COST.ROB.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
-            await bot.send(message=f"强行抢{THING}需要{cost_coin}金币,你的金币不够!", event = event)
+            await bot.send(message=f"强行抢{things}需要{cost_coin}金币,你的金币不够!", event = event)
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
                                     cost_coin)
 
-        await bot.send(message=f"扣除{cost_coin}金币来抢{THING}", event = event)
+        await bot.send(message=f"扣除{cost_coin}金币来抢{things}", event = event)
         BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.ROB)
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
-        event_.set_robbed_id(robbed_qq, robbed_name)
-        msg_txt = event_.execute()
+        event_.set_other_id(robbed_qq, robbed_name)
+        msg_txt = event_.execute(rob_num)
 
-        res_msg = msg_name + msg_txt
-        await bot.send(event=event, message=res_msg)
+    res_msg = msg_at + msg_txt
+    await bot.send(event=event, message=res_msg)
+
 
 @bread_give.handle()
-async def _(bot: Bot, event: Event, args: Message = CommandArg()):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    group_id = await get_group_id(event.get_session_id())
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_give_ori)
+    except CommandError:
         return
 
-    robbed_qq = None
+    given_qq = None
+    give_num = None
     for arg in args:
         if arg.type == "at":
-            robbed_qq = arg.data.get("qq", "")
-    if not robbed_qq:
+            given_qq = arg.data.get("qq", "")
+        if arg.type == "text":
+            text = arg.data.get("text")
+            try:
+                give_num = get_num_arg(text, GiveEvent, group_id)
+            except ArgsError as e:
+                await bot.send(event=event, message=str(e))
+                return
+
+    if not given_qq:
         return
-    robbed_name = await get_nickname(bot, robbed_qq, group_id)
+    given_name = await get_nickname(bot, given_qq, group_id)
 
     wait_time = cd_wait_time(group_id, user_qq, Action.GIVE)
     if wait_time > 0:
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能送{THING}w"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能送{things}w"
     elif wait_time < 0:
-        msg_txt = f"你被禁止送{THING}啦！{(abs(wait_time) + CD.GIVE.value) // 60}分钟后才能赠送哦！"
+        msg_txt = f"你被禁止送{things}啦！{(abs(wait_time) + CD.GIVE.value) // 60}分钟后才能赠送哦！"
     else:
         event_ = GiveEvent(group_id)
         event_.set_user_id(user_qq)
-        event_.set_given_id(robbed_qq, robbed_name)
-        msg_txt = event_.execute()
+        event_.set_other_id(given_qq, given_name)
+        msg_txt = event_.execute(give_num)
 
-    res_msg = msg_name + msg_txt
+    res_msg = msg_at + msg_txt
     await bot.send(event=event, message=res_msg)
 
 
 @bread_bet.handle()
-async def _(bot: Bot, event: Event, args: Message = CommandArg()):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_bet_ori)
+    except CommandError:
         return
 
     wait_time = cd_wait_time(group_id, user_qq, Action.BET)
     if wait_time > 0:
         msg_txt = f"您还得等待{wait_time // 60}分钟才能猜拳w"
-        await bot.send(event=event, message=msg_name + msg_txt)
+        await bot.send(event=event, message=msg_at + msg_txt)
         return
     elif wait_time < 0:
         msg_txt = f"你被禁止猜拳啦！{(abs(wait_time) + CD.BET.value) // 60}分钟后才能猜拳哦！"
-        await bot.send(event=event, message=msg_name + msg_txt)
+        await bot.send(event=event, message=msg_at + msg_txt)
         return
     else:
-        ges = args.extract_plain_text()
+        texts = args.extract_plain_text().split()
+        ges = texts[0]
+        bet_num = None
+        if len(texts) == 2:
+            bet_txt = texts[1]
+            try:
+                bet_num = get_num_arg(bet_txt, BetEvent, group_id)
+            except ArgsError as e:
+                await bot.send(event=event, message=str(e))
+                return
 
         if ges not in ["石头", "剪刀", "布"]:
-            await bot.send(event=event, message=f"没有{ges}这种东西啦！请输入“石头”或“剪刀”或“布”！例如 ’赌面包 石头‘ ")
+            await bot.send(event=event, message=f"没有{ges}这种东西啦！请输入“石头”或“剪刀”或“布”！例如 ’/bet 石头‘ ")
             return
         if ges == "石头":
             ges_ = BetEvent.G(0)
@@ -323,20 +404,17 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         event_ = BetEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_user_gestures(ges_)
-        msg_txt = event_.execute()
+        msg_txt = event_.execute(bet_num)
 
-        res_msg = msg_name + msg_txt
+        res_msg = msg_at + msg_txt
         await bread_bet.finish(res_msg)
 
 
 @bread_check.handle()
-async def _(event: Event, bot: Bot, args: Message = CommandArg()):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_check_ori)
+    except CommandError:
         return
 
     checked_qq = user_qq
@@ -345,23 +423,20 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
             checked_qq = arg.data.get("qq", "")
     if checked_qq == user_qq:
         user_data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg = f"你现在拥有{user_data.bread_num}个{THING}，等级为Lv.{user_data.level}，排名为{user_data.no}！"
+        msg = f"你现在拥有{user_data.bread_num}个{things}，等级为Lv.{user_data.level}，排名为{user_data.no}！"
     else:
         checked_name = await get_nickname(bot, checked_qq, group_id)
         checked_data = BreadDataManage(group_id).get_bread_data(checked_qq)
-        msg = f"{checked_name} 现在拥有{checked_data.bread_num}个{THING}，等级为Lv.{checked_data.level}，排名为{checked_data.no}！"
+        msg = f"{checked_name} 现在拥有{checked_data.bread_num}个{things}，等级为Lv.{checked_data.level}，排名为{checked_data.no}！"
 
-    await bot.send(event=event, message=msg_name + msg)
+    await bot.send(event=event, message=msg_at + msg)
 
 
 @bread_log.handle()
-async def _(event: Event, bot: Bot, args: Message = CommandArg()):
-    user_qq = event.get_user_id()
-    group_id = await get_group_id(event.get_session_id())
-    msg_name = await get_nickname(bot, user_qq, group_id)
-
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_log_ori)
+    except CommandError:
         return
 
     add_arg = args.extract_plain_text()
@@ -378,8 +453,8 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
             await bot.send(event=event, message=msg)
             return
         else:
-            msg = f'没有{add_arg}这个操作啦！只有"买"，"吃"，"抢"，"赠送"，"猜拳" 例如：{THING}记录 买'
-            await bot.send(event=event, message=msg_name + msg)
+            msg = f'没有{add_arg}这个操作啦！只有"买"，"吃"，"抢"，"赠送"，"猜拳" 例如：/logb 买'
+            await bot.send(event=event, message=msg_at + msg)
             return
 
     checked_qq = user_qq
@@ -395,42 +470,43 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg()):
         checked_log = BreadDataManage(group_id).get_log_data(checked_qq)
         msg = f"{checked_name}共购买{checked_log.buy_times}次，吃{checked_log.eat_times}次，抢{checked_log.rob_times}次，" \
               f"赠送{checked_log.give_times}次，猜拳{checked_log.eat_times}次！"
-    await bot.send(event=event, message=msg_name + msg)
+    await bot.send(event=event, message=msg_at + msg)
 
 
 @bread_help.handle()
-async def _(event: Event, bot: Bot):
-    group_id = await get_group_id(event.get_session_id())
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(event: Event, bot: Bot, cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_help_ori)
+    except CommandError:
         return
 
     msg = f"""       🍞商店使用说明🍞
 指令	        说明
-买{THING}    	购买随机{THING}
-啃{THING}	    吃随机{THING}
-抢{THING}+@	  抢随机{THING}
-送{THING}+@	  送随机{THING}
-赌{THING}+""	猜拳赌随机{THING}
-{THING}记录+""   查看操作次数最多的人
-{THING}记录+@    查看操作次数
-查看{THING}+@    查看{THING}数据
-{THING}排行	    本群排行榜top5
-强行买{THING}   花费额外金币购买{THING}
-强行吃{THING}   花费额外金币吃{THING}
-强行抢{THING}   花费额外金币抢{THING}
+买{things}    	购买随机{things}
+啃{things}	    吃随机{things}
+抢{things}+@	  抢随机{things}
+送{things}+@	  送随机{things}
+赌{things}+""	猜拳赌随机{things}
+{things}记录+""   查看操作次数最多的人
+{things}记录+@    查看操作次数
+查看{things}+@    查看{things}数据
+{things}排行	    本群排行榜top5
+强行买{things}   花费额外金币购买{things}
+强行吃{things}   花费额外金币吃{things}
+强行抢{things}   花费额外金币抢{things}
 更多详情见本项目地址：
 https://github.com/Mai-icy/nonebot-plugin-bread-shop"""
     await bot.send(event=event, message=msg)
 
 
 @bread_top.handle()
-async def _(bot: Bot, event: Event):
-    group_id = await get_group_id(event.get_session_id())
-    if group_id in BANNED_GROUPS:
-        await bot.send(event=event, message=f"本群已禁止{THING}店！请联系bot管理员！")
+async def _(bot: Bot, event: Event, cmd: Message = RawCommand()):
+    try:
+        user_qq, group_id, name, msg_at, things = await pre_get_data(event, bot, cmd, cmd_top_ori)
+    except CommandError:
         return
-    msg = await get_group_top(bot, group_id)
+
+    msg = await get_group_top(bot, group_id, things)
     await bot.send(event=event, message=msg)
 
 
@@ -440,18 +516,18 @@ async def get_group_id(session_id):
     return group_id
 
 
-async def get_group_top(bot: Bot, group_id) -> Message:
+async def get_group_top(bot: Bot, group_id, things) -> Message:
     group_member_list = await bot.get_group_member_list(group_id=int(group_id))
     user_id_list = {info['user_id'] for info in group_member_list}
     all_data = BreadDataManage(group_id).get_all_data()
     num = 0
-    append_text = f"🍞本群{THING}排行top5！🍞\n"
+    append_text = f"🍞本群{things}排行top10！🍞\n"
     for data in all_data:
         if int(data.user_id) in user_id_list:
             num += 1
             name = await get_nickname(bot, data.user_id, group_id)
-            append_text += f"top{num} : {name} Lv.{data.bread_eaten // LEVEL_NUM}，拥有{THING}{data.bread_num}个\n"
-        if num == 5:
+            append_text += f"top{num} : {name} Lv.{data.bread_eaten // LEVEL}，拥有{things}{data.bread_num}个\n"
+        if num == 10:
             break
     append_text += "大家继续加油w！"
     return Message(append_text)
@@ -468,3 +544,49 @@ async def get_nickname(bot: Bot, user_id, group_id=None):
         info = await bot.get_stranger_info(user_id=int(user_id))
         other_name = info.get("nickname", "")
     return other_name
+
+
+def get_num_arg(text, event_type, group_id):
+    text = text.strip()
+    if text:
+        if event_type(group_id).is_random():
+            raise ArgsError("本群不可指定其它参数！请正确使用'@'")
+        elif not text.isdigit():
+            raise ArgsError("请输入数字！")
+        else:
+            return int(text)
+    else:
+        return None
+
+
+async def pre_get_data(event, bot, cmd, cmd_ori):
+    user_qq = event.get_user_id()
+    group_id = await get_group_id(event.get_session_id())
+    name = await get_nickname(bot, user_qq, group_id)
+
+    # msg_at = Message(f"[CQ:at,qq={user_qq}]")
+    msg_at = Message("@" + name)
+
+    things = bread_config.special_thing_group.get(group_id, bread_config.bread_thing)
+    if not cmd[1:] in cmd_ori and things not in cmd:
+        raise CommandError
+
+    if (bread_config.global_bread and group_id in bread_config.black_bread_groups) or \
+            (not bread_config.global_bread and group_id not in bread_config.white_bread_groups):
+        await bot.send(event=event, message=f"本群已禁止{things}店！请联系bot管理员！")
+        raise CommandError
+
+    return user_qq, group_id, name, msg_at, things
+
+
+class ArgsError(ValueError):
+    pass
+
+
+class CommandError(ValueError):
+    pass
+
+
+@driver.on_shutdown
+async def close_db():
+    BreadDataManage.close_dbs()
