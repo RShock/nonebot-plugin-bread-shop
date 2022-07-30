@@ -138,7 +138,7 @@ def eat_event_refresh(event: EatEvent):
     return append_text
 
 
-@probability(0.01, Action.EAT, priority=5)
+@probability(0.02, Action.EAT, priority=5)
 def eat_event_good(event: EatEvent):
     eat_num = event.action_num
     event.bread_db.reduce_bread(event.user_id, eat_num)

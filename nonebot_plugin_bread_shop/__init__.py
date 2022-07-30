@@ -9,6 +9,8 @@ from nonebot import on_command
 from nonebot.params import CommandArg, RawCommand
 from nonebot.adapters.onebot.v11 import Bot, Event, Message, GroupMessageEvent
 from models.bag_user import BagUser
+from utils.image_utils import text2image
+from utils.message_builder import image
 
 from .bread_handle import BreadDataManage, Action
 from .bread_operate import *
@@ -43,7 +45,7 @@ __plugin_cmd__ = [
     "面包帮助",
     "面包排行"
 ]
-__plugin_type__ = ("群内小游戏", )
+__plugin_type__ = ("群内小游戏",)
 __plugin_version__ = 0.1
 __plugin_author__ = "Mai-icy"
 __plugin_settings__ = {
@@ -58,14 +60,14 @@ driver = get_driver()
 cmd_buy_ori = {"buy", "🍞"}
 cmd_force_buy_ori = {"force_buy"}
 cmd_eat_ori = {"eat", "🍞🍞"}
-cmd_force_eat_ori = {"eat", "🍞🍞"}
+cmd_force_eat_ori = {"force_eat"}
 cmd_rob_ori = {"rob", "🍞🍞🍞"}
-cmd_force_rob_ori = {"rob", "🍞🍞🍞"}
+cmd_force_rob_ori = {"force_rob"}
 cmd_give_ori = {"give", "送"}
 cmd_bet_ori = {"bet"}
 
 cmd_log_ori = {"logb"}
-cmd_check_ori = {"check"}
+cmd_check_ori = {"checkbread"}
 
 cmd_top_ori = {"breadtop"}
 cmd_help_ori = {"breadhelp", "helpb"}
@@ -111,19 +113,19 @@ for things in chain(bread_config.special_thing_group.values(), (bread_config.bre
     cmd_top.add(f"{things}排名")
     cmd_help.add(f"{things}帮助")
 
-bread_buy = on_command("bread_buy", aliases=cmd_buy, priority=5, block = True)
-force_buy = on_command("force_buy", aliases=cmd_force_buy, priority=5, block = True)
-bread_eat = on_command("bread_eat", aliases=cmd_eat, priority=5, block = True)
-force_eat = on_command("force_eat", aliases=cmd_force_eat, priority=5, block = True)
-bread_rob = on_command("bread_rob", aliases=cmd_rob, priority=5, block = True)
-force_rob = on_command("force_rob", aliases=cmd_force_rob, priority=5, block = True)
-bread_give = on_command("bread_give", aliases=cmd_give, priority=5, block = True)
-bread_bet = on_command("bread_bet", aliases=cmd_bet, priority=5, block = True)
+bread_buy = on_command("bread_buy", aliases=cmd_buy, priority=5, block=True)
+force_buy = on_command("force_buy", aliases=cmd_force_buy, priority=5, block=True)
+bread_eat = on_command("bread_eat", aliases=cmd_eat, priority=5, block=True)
+force_eat = on_command("force_eat", aliases=cmd_force_eat, priority=5, block=True)
+bread_rob = on_command("bread_rob", aliases=cmd_rob, priority=5, block=True)
+force_rob = on_command("force_rob", aliases=cmd_force_rob, priority=5, block=True)
+bread_give = on_command("bread_give", aliases=cmd_give, priority=5, block=True)
+bread_bet = on_command("bread_bet", aliases=cmd_bet, priority=5, block=True)
 
-bread_log = on_command("bread_log", aliases=cmd_log, priority=5, block = True)
-bread_check = on_command("bread_check", aliases=cmd_check, priority=5, block = True)
-bread_top = on_command("bread_top", aliases=cmd_top, priority=5, block = True)
-bread_help = on_command("bread_help", aliases=cmd_help, priority=5, block = True)
+bread_log = on_command("bread_log", aliases=cmd_log, priority=5, block=True)
+bread_check = on_command("bread_check", aliases=cmd_check, priority=5, block=True)
+bread_top = on_command("bread_top", aliases=cmd_top, priority=5, block=True)
+bread_help = on_command("bread_help", aliases=cmd_help, priority=5, block=True)
 
 EatEvent.add_events(eat_events)
 BuyEvent.add_events(buy_events)
@@ -148,16 +150,16 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
     wait_time = cd_wait_time(group_id, user_qq, Action.BUY)
     if wait_time > 0:
         data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能买{things}w，现在一共拥有{data.bread_num}个{things}！您的{things}排名为:{data.no}"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能买{things}w，\n现在一共拥有{data.bread_num}个{things}！\n您的{things}排名为:{data.no}"
     elif wait_time < 0:
-        msg_txt = f"你被禁止购买{things}啦！{(abs(wait_time) + CD.BUY.value) // 60}分钟后才能购买！"
+        msg_txt = f"你被禁止购买{things}啦！\n{(abs(wait_time) + CD.BUY.value) // 60}分钟后才能购买！"
     else:
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute(buy_num)
 
-    res_msg = msg_at + Message(msg_txt)
-    await bot.send(event=event, message=res_msg)
+    await send_img(bread_buy, f"{name}，{msg_txt}")
+
 
 @force_buy.handle()
 async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
@@ -174,20 +176,18 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
         cost_coin = COST.BUY.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
-            await bot.send(message=f"强行买{things}需要{cost_coin}金币,你的金币不够!", event = event)
+            await send_img(bread_buy, f"{name}，\n强行买{things}需要{cost_coin}金币,\n你的金币不够!")
             return
-        await BagUser.spend_gold(event.user_id, event.group_id,
-                                    cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来买{things}", event = event)
-
+        await BagUser.spend_gold(event.user_id, event.group_id, cost_coin)
+        await send_img(bread_buy, f"{name}，\n扣除{cost_coin}金币来买{things}")
         BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.BUY)
-    
+
         event_ = BuyEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute(buy_num)
 
-    res_msg = msg_at + Message(msg_txt)
-    await bot.send(event=event, message=res_msg)
+        await send_img(bread_buy, f"{name}，{msg_txt}")
+
 
 @bread_eat.handle()
 async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
@@ -203,16 +203,16 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
     wait_time = cd_wait_time(group_id, user_qq, Action.EAT)
     if wait_time > 0:
         data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能吃{things}w，现在你的等级是Lv.{data.bread_eaten // LEVEL}！您的{things}排名为:{data.no}"
+        msg_txt = f"您还得等待{wait_time // 60}分钟才能吃{things}w，\n现在你的等级是Lv.{data.bread_eaten // LEVEL}！\n您的{things}排名为:{data.no}"
     elif wait_time < 0:
-        msg_txt = f"你被禁止吃{things}啦！{(abs(wait_time) + CD.EAT.value) // 60}分钟后才能吃哦！"
+        msg_txt = f"你被禁止吃{things}啦！\n{(abs(wait_time) + CD.EAT.value) // 60}分钟后才能吃哦！"
     else:
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute(eat_num)
 
-    res_msg = msg_at + Message(msg_txt)
-    await bot.send(event=event, message=res_msg)
+    await send_img(bread_buy, f"{name}，{msg_txt}")
+
 
 @force_eat.handle()
 async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message = RawCommand()):
@@ -229,18 +229,18 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
         cost_coin = COST.EAT.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
-            await bot.send(message=f"强行吃{things}需要{cost_coin}金币,你的金币不够!", event = event)
+            await bot.send(message=f"强行吃{things}需要{cost_coin}金币,\n你的金币不够!", event=event)
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
-                                    cost_coin)
-        await bot.send(message=f"扣除{cost_coin}金币来吃{things}", event = event)
+                                 cost_coin)
+        await bot.send(message=f"扣除{cost_coin}金币来吃{things}", event=event)
         BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.EAT)
         event_ = EatEvent(group_id)
         event_.set_user_id(user_qq)
         msg_txt = event_.execute(eat_num)
 
-    res_msg = msg_at + Message(msg_txt)
-    await bot.send(event=event, message=res_msg)
+        await send_img(bread_buy, f"{name}，{msg_txt}")
+
 
 @bread_rob.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message = RawCommand()):
@@ -263,22 +263,23 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message =
                 return
 
     if not robbed_qq:
+        await send_img(bread_buy, f"{name}，请at人来抢他！")
         return
     robbed_name = await get_nickname(bot, robbed_qq, group_id)
 
     wait_time = cd_wait_time(group_id, user_qq, Action.ROB)
     if wait_time > 0:
-        msg_txt = f"您还得等待{wait_time // 60}分钟才能抢{things}w"
+        msg_txt = f"您还得等待{wait_time // 60}分钟\n才能抢{things}w"
     elif wait_time < 0:
-        msg_txt = f"你被禁止抢{things}啦！{(abs(wait_time) + CD.ROB.value) // 60}分钟后才能抢哦！"
+        msg_txt = f"你被禁止抢{things}啦！\n{(abs(wait_time) + CD.ROB.value) // 60}分钟后才能抢哦！"
     else:
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_other_id(robbed_qq, robbed_name)
         msg_txt = event_.execute(rob_num)
 
-    res_msg = msg_at + msg_txt
-    await bot.send(event=event, message=res_msg)
+    await send_img(bread_buy, f"{name}，{msg_txt}")
+
 
 @force_rob.handle()
 async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message = RawCommand()):
@@ -308,20 +309,18 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message =
         cost_coin = COST.ROB.value
         have_gold = await BagUser.get_gold(event.user_id, event.group_id)
         if have_gold < cost_coin:
-            await bot.send(message=f"强行抢{things}需要{cost_coin}金币,你的金币不够!", event = event)
+            await send_img(force_rob, f"{name}，\n强行抢{things}需要{cost_coin}金币,你的金币不够!")
             return
         await BagUser.spend_gold(event.user_id, event.group_id,
-                                    cost_coin)
-
-        await bot.send(message=f"扣除{cost_coin}金币来抢{things}", event = event)
+                                 cost_coin)
+        await send_img(force_rob, f"{name}，\n扣除{cost_coin}金币来抢{things}")
         BreadDataManage(group_id).cd_refresh(str(event.user_id), Action.ROB)
         event_ = RobEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_other_id(robbed_qq, robbed_name)
         msg_txt = event_.execute(rob_num)
 
-    res_msg = msg_at + msg_txt
-    await bot.send(event=event, message=res_msg)
+        await send_img(force_rob, f"{name}，{msg_txt}")
 
 
 @bread_give.handle()
@@ -352,15 +351,14 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message =
     if wait_time > 0:
         msg_txt = f"您还得等待{wait_time // 60}分钟才能送{things}w"
     elif wait_time < 0:
-        msg_txt = f"你被禁止送{things}啦！{(abs(wait_time) + CD.GIVE.value) // 60}分钟后才能赠送哦！"
+        msg_txt = f"你被禁止送{things}啦！\n{(abs(wait_time) + CD.GIVE.value) // 60}分钟后才能赠送哦！"
     else:
         event_ = GiveEvent(group_id)
         event_.set_user_id(user_qq)
         event_.set_other_id(given_qq, given_name)
         msg_txt = event_.execute(give_num)
 
-    res_msg = msg_at + msg_txt
-    await bot.send(event=event, message=res_msg)
+    await send_img(bread_give, f"{name}，{msg_txt}")
 
 
 @bread_bet.handle()
@@ -373,11 +371,11 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message =
     wait_time = cd_wait_time(group_id, user_qq, Action.BET)
     if wait_time > 0:
         msg_txt = f"您还得等待{wait_time // 60}分钟才能猜拳w"
-        await bot.send(event=event, message=msg_at + msg_txt)
+        await send_img(bread_log, f"{name}，{msg_txt}")
         return
     elif wait_time < 0:
-        msg_txt = f"你被禁止猜拳啦！{(abs(wait_time) + CD.BET.value) // 60}分钟后才能猜拳哦！"
-        await bot.send(event=event, message=msg_at + msg_txt)
+        msg_txt = f"你被禁止猜拳啦！\n{(abs(wait_time) + CD.BET.value) // 60}分钟后才能猜拳哦！"
+        await send_img(bread_log, f"{name}，{msg_txt}")
         return
     else:
         texts = args.extract_plain_text().split()
@@ -392,7 +390,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message =
                 return
 
         if ges not in ["石头", "剪刀", "布"]:
-            await bot.send(event=event, message=f"没有{ges}这种东西啦！请输入“石头”或“剪刀”或“布”！例如 ’/bet 石头‘ ")
+            await bot.send(event=event, message=f"没有{ges}这种东西啦！\n请输入“石头”或“剪刀”或“布”！例如 ’/bet 石头‘ ")
             return
         if ges == "石头":
             ges_ = BetEvent.G(0)
@@ -406,8 +404,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg(), cmd: Message =
         event_.set_user_gestures(ges_)
         msg_txt = event_.execute(bet_num)
 
-        res_msg = msg_at + msg_txt
-        await bread_bet.finish(res_msg)
+        await send_img(bread_bet, f"{name}，{msg_txt}")
 
 
 @bread_check.handle()
@@ -423,13 +420,13 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
             checked_qq = arg.data.get("qq", "")
     if checked_qq == user_qq:
         user_data = BreadDataManage(group_id).get_bread_data(user_qq)
-        msg = f"你现在拥有{user_data.bread_num}个{things}，等级为Lv.{user_data.level}，排名为{user_data.no}！"
+        msg = f"你现在拥有{user_data.bread_num}个{things}，\n等级为Lv.{user_data.level}，\n排名为{user_data.no}！"
     else:
         checked_name = await get_nickname(bot, checked_qq, group_id)
         checked_data = BreadDataManage(group_id).get_bread_data(checked_qq)
-        msg = f"{checked_name} 现在拥有{checked_data.bread_num}个{things}，等级为Lv.{checked_data.level}，排名为{checked_data.no}！"
+        msg = f"{checked_name} 现在拥有{checked_data.bread_num}个{things}，\n等级为Lv.{checked_data.level}，排名为{checked_data.no}！"
 
-    await bot.send(event=event, message=msg_at + msg)
+    await send_img(bread_check, f"{name}，{msg}")
 
 
 @bread_log.handle()
@@ -450,11 +447,11 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
             attr_val = BreadDataManage.LOG_COLUMN[val_index].lower()
             app_msg = ["哇好有钱！", "好能吃，大胃王！", "大坏比！", "我超，带好人！", "哇塞，赌狗！"]
             msg = f"{add_arg}次数最多是{name}！共{getattr(data, attr_val)}次！" + app_msg[val_index]
-            await bot.send(event=event, message=msg)
+            await send_img(bread_log, f"{name}，{msg}")
             return
         else:
             msg = f'没有{add_arg}这个操作啦！只有"买"，"吃"，"抢"，"赠送"，"猜拳" 例如：/logb 买'
-            await bot.send(event=event, message=msg_at + msg)
+            await send_img(bread_log, f"{name}，{msg}")
             return
 
     checked_qq = user_qq
@@ -470,7 +467,7 @@ async def _(event: Event, bot: Bot, args: Message = CommandArg(), cmd: Message =
         checked_log = BreadDataManage(group_id).get_log_data(checked_qq)
         msg = f"{checked_name}共购买{checked_log.buy_times}次，吃{checked_log.eat_times}次，抢{checked_log.rob_times}次，" \
               f"赠送{checked_log.give_times}次，猜拳{checked_log.eat_times}次！"
-    await bot.send(event=event, message=msg_at + msg)
+    await send_img(bread_check, msg)
 
 
 @bread_help.handle()
@@ -496,7 +493,7 @@ async def _(event: Event, bot: Bot, cmd: Message = RawCommand()):
 强行抢{things}   花费额外金币抢{things}
 更多详情见本项目地址：
 https://github.com/Mai-icy/nonebot-plugin-bread-shop"""
-    await bot.send(event=event, message=msg)
+    await send_img(bread_help, msg)
 
 
 @bread_top.handle()
@@ -507,7 +504,7 @@ async def _(bot: Bot, event: Event, cmd: Message = RawCommand()):
         return
 
     msg = await get_group_top(bot, group_id, things)
-    await bot.send(event=event, message=msg)
+    await send_img(bread_top, msg)
 
 
 async def get_group_id(session_id):
@@ -516,7 +513,7 @@ async def get_group_id(session_id):
     return group_id
 
 
-async def get_group_top(bot: Bot, group_id, things) -> Message:
+async def get_group_top(bot: Bot, group_id, things) -> str:
     group_member_list = await bot.get_group_member_list(group_id=int(group_id))
     user_id_list = {info['user_id'] for info in group_member_list}
     all_data = BreadDataManage(group_id).get_all_data()
@@ -530,7 +527,7 @@ async def get_group_top(bot: Bot, group_id, things) -> Message:
         if num == 10:
             break
     append_text += "大家继续加油w！"
-    return Message(append_text)
+    return append_text
 
 
 async def get_nickname(bot: Bot, user_id, group_id=None):
@@ -568,7 +565,7 @@ async def pre_get_data(event, bot, cmd, cmd_ori):
     msg_at = Message("@" + name)
 
     things = bread_config.special_thing_group.get(group_id, bread_config.bread_thing)
-    if not cmd[1:] in cmd_ori and things not in cmd:
+    if not cmd[1:] in cmd_ori and things not in cmd and cmd != '🍞' and cmd != '🍞🍞' and cmd != '🍞🍞🍞':
         raise CommandError
 
     if (bread_config.global_bread and group_id in bread_config.black_bread_groups) or \
@@ -590,3 +587,14 @@ class CommandError(ValueError):
 @driver.on_shutdown
 async def close_db():
     BreadDataManage.close_dbs()
+
+
+async def send_img(bot, msg: str):
+    new_txt = ""
+    l = msg.split("\n")
+    for txt in l:
+        while txt:
+            new_txt = "{0}{1}\n".format(new_txt, txt[:20])
+            txt = txt[20:]
+
+    await bot.send(image(b64=(await text2image(new_txt, padding=10)).pic2bs4()))
